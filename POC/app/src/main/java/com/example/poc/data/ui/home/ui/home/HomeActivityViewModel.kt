@@ -33,16 +33,21 @@ class HomeActivityViewModel(private val homeRepository: HomeRepository) : ViewMo
                 var item = mapa.get(key) as Map<String, Object>
                 if (map.get("clear") != null && map.get("clear") as String == "true") {
                     mapa.set(key, map as Object)
+                    (mapa.get(key) as HashMap<String, Object>).put("updated", "true" as Object)
                 } else {
                     var list = (mapa.get(key) as Map<String, Object>).get("list") as ArrayList<Object>
                     //var plus = list.plus(item.get("list"))
                     var union = ArrayList<Object>((list).union(map.get("list") as ArrayList<Object>))
+                    if (list.size != union.size) {
+                        (mapa.get(key) as HashMap<String, Object>).put("updated", "true" as Object)
+                    }
                     (mapa.get(key) as HashMap<String, ArrayList<Object>>).set("list", union as ArrayList<Object>)
 
                 }
             } else {
                 //nao tinha esse campo antes
                 mapa.put(key, objeto)
+                (mapa.get(key) as HashMap<String, Object>).put("updated", "true" as Object)
 
             }
         }.also {

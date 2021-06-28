@@ -67,36 +67,46 @@ class HomeActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     }
 
      private fun initTabbarUI(bar: Map<String, Object>) {
-        val navView: BottomNavigationView = findViewById(R.id.nav_view)
-        var menu = navView.menu
-        if (bar.get("clear")?.equals("true") == true) {
-            menu.clear()
-            menuId = null
-        }
-        val list = bar.get("list") as ArrayList<Map<String, Object>>
-        this.run { list.forEachIndexed { index, it ->
-            System.out.println(index)
-            if (it != null) {
-                var map: Map<String, String> = it as Map<String, String>
-                var menuItem = menu.add(Menu.NONE, index, index, map.get("title").toString())
-                if (map.get("type").toString().equals("fixed_icon")) {
-                    if (menuItem != null)
-                        menuItem.setIcon(this.applicationContext.resources.getIdentifier(map.get("icon").toString(), "drawable", this.applicationContext.packageName))
-                }
+         val navView: BottomNavigationView = findViewById(R.id.nav_view)
+         var menu = navView.menu
+         if (bar.get("clear")?.equals("true") == true) {
+             menu.clear()
+             menuId = null
+             (bar as HashMap<String, Object>).remove("clear")
+         }
+         val list = bar.get("list") as ArrayList<Map<String, Object>>
+         this.run {
+             if (bar.get("updated")?.equals("true") == true) {
+                 list.forEachIndexed { index, it ->
+                     System.out.println(index)
+                     if (it != null) {
+                         var map: Map<String, String> = it as Map<String, String>
+                         var menuItem = menu.add(Menu.NONE, index, index, map.get("title").toString())
+                         if (map.get("type").toString().equals("fixed_icon")) {
+                             if (menuItem != null)
+                                 menuItem.setIcon(this.applicationContext.resources.getIdentifier(map.get("icon").toString(), "drawable", this.applicationContext.packageName))
+                         }
 
-                if (map.get("checked") != null && map.get("checked") as Boolean) {
-                    if (menuId == null) {
-                        menuId = menuItem
-                    }
-                }
+                         if (menuId == null && map.get("checked") != null && map.get("checked") as Boolean) {
+                             menuId = menuItem
+                         }
 
-            }
-        }}.also{
-            if (menuId != null) {
-                navView.selectedItemId = menuId!!.itemId as Int
-                loadItemMenu(menuId!!)
-            }
-        }
+                     }
+                 }.also {
+                     (bar as HashMap<String, Object>).put("updated", "false" as Object)
+                     if (menuId != null) {
+                         navView.selectedItemId = menuId!!.itemId as Int
+                         loadItemMenu(menuId!!)
+                     }
+                 }
+             } else {
+                 if (menuId != null) {
+                     navView.selectedItemId = menuId!!.itemId as Int
+                     loadItemMenu(menuId!!)
+                 }
+             }
+         }
+
 
          navView.setOnNavigationItemSelectedListener{
              loadItemMenu(it)
@@ -113,7 +123,8 @@ class HomeActivity : AppCompatActivity(), CoroutineScope by MainScope() {
             when (list[it.itemId].get("page-style") as String) {
                 "menu" -> {
                     val field = list[it.itemId].get("data-origin") as String?
-                    dashboardFragment = DashboardFragment(field)
+                    val service = map.get(field) as Map<String, Object>?
+                    dashboardFragment = DashboardFragment(service)
                     fm.beginTransaction().apply {replace(R.id.nav_host_fragment, dashboardFragment).commit()}
                 }
                 "timeline" -> {
