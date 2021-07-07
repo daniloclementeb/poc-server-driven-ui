@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">POC</string>
+    <string name="app_name">Danilo App</string>
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
     <string name="prompt_password">Password</string>
@@ -15,4 +15,5 @@
     <string name="title_notifications">Notifications</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="prompt_cpf">cpf</string>
 </resources>
