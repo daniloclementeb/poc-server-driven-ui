@@ -10,19 +10,14 @@ android {
         applicationId "com.danilo.poc"
         minSdkVersion 29
         targetSdkVersion 29
-        versionCode 3
+        versionCode 4
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         signingConfig
     }
     signingConfigs {
-        getByName("debug") {
-            keyAlias = "debug"
-            keyPassword = "my debug key password"
-            storeFile = file("/home/miles/keystore.jks")
-            storePassword = "my keystore password"
-        }
+
         create("release") {
             keyAlias = "key0"
             keyPassword = "senhas123"
@@ -35,7 +30,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig = signingConfigs.getByName("release")
-            debuggable = true
+            //debuggable = true
         }
     }
     compileOptions {

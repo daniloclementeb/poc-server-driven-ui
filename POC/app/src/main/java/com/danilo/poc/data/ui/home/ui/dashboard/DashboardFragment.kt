@@ -12,7 +12,7 @@ import com.danilo.poc.R
 import com.danilo.poc.data.model.MenuRecyclerAdapter
 
 
-class DashboardFragment(private var field: Map<String, Object>?) : Fragment() {
+class DashboardFragment(private var field: Map<String, Object>?, var city:String, var topic:String) : Fragment() {
 
     private lateinit var dashboardViewModel: DashboardViewModel
     private var adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = null
@@ -47,12 +47,16 @@ class DashboardFragment(private var field: Map<String, Object>?) : Fragment() {
                     title.put("order", "-1000" as Object)
                     //title.put("image", null as Object)
                     list.add(title)
-                }
+                } /*else if (field?.get("weather") != null) {
+                    //só posso ter 1 weather e é logo abaixo do titulo
+                    var weather = field?.get("weather") as HashMap<String, Object>
+                    list.add(weather)
+                }*/
                 list.addAll(field!!.get("list") as ArrayList<Map<String, Object>>)
                 list.sortBy {
                     ((it.get("order") as Object?).toString().toIntOrNull() ?: 0)
                 }
-                adapter = MenuRecyclerAdapter(list, context)
+                adapter = MenuRecyclerAdapter(list, context, city, topic)
             }
         }
     }

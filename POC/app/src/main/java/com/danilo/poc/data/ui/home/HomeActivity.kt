@@ -132,7 +132,7 @@ class HomeActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                 "menu" -> {
                     val field = list[it.itemId].get("data-origin") as String?
                     val service = map.get(field) as Map<String, Object>?
-                    dashboardFragment = DashboardFragment(service)
+                    dashboardFragment = DashboardFragment(service, username.get("city") as String, username.get("token") as String)
                     fm.beginTransaction().apply {replace(R.id.nav_host_fragment, dashboardFragment).commit()}
                 }
                 "timeline" -> {
