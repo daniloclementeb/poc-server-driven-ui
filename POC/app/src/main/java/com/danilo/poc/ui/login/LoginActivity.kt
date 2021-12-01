@@ -10,7 +10,6 @@ import android.location.Location
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.*
@@ -20,8 +19,14 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import com.danilo.poc.BuildConfig
 import com.danilo.poc.R
 import com.danilo.poc.data.ui.home.HomeActivity
+import com.danilo.poc.data.ui.home.ui.ads.BannerViewModel
+import com.danilo.poc.data.ui.home.HomeV1Activity
+import com.danilo.poc.data.ui.home.ui.ads.BannerViewModelFactory
+import com.danilo.poc.data.ui.home.ui.home.HomeActivityViewModel
+import com.danilo.poc.data.ui.home.ui.home.HomeViewModelFactory
 import com.google.android.gms.ads.*
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.CoroutineScope
@@ -34,39 +39,28 @@ import java.util.*
 class LoginActivity : AppCompatActivity(), CoroutineScope by MainScope() {
 
     private lateinit var loginViewModel: LoginViewModel
+    private lateinit var bannerViewModel: BannerViewModel
 
     @SuppressLint("SetTextI18n", "ResourceType")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        /*AppLovinSdk.getInstance( this ).setMediationProvider( "max" )
-        AppLovinSdk.getInstance( this ).initializeSdk({ configuration: AppLovinSdkConfiguration ->
-            // AppLovin SDK is initialized, start loading ads
-        })*/
-
-
-        MobileAds.initialize(
-            this
-        ) { }
+        bannerViewModel =
+            ViewModelProvider(this, BannerViewModelFactory(context = this)).get(BannerViewModel::class.java)
 
         var adContainerView = findViewById<AdView>(R.id.adviewLogin)
         var adView = AdView(this)
 
         adContainerView.addView(adView)
-        loadBanner(adView)
+        bannerViewModel.loadBanner(adView, "ca-app-pub-9333521400694042/6831621481")
 
         val username = findViewById<EditText>(R.id.username)
         val password = findViewById<EditText>(R.id.password)
         val login = findViewById<Button>(R.id.login)
         val loading = findViewById<ProgressBar>(R.id.loading)
-        //username.setText("32488498866")
-        //password.setText("Teste13579!")
-        //login.isEnabled = true
 
-        //request permission
         threatLocationPermission()
-
 
         loginViewModel = ViewModelProvider(this, LoginViewModelFactory())
                 .get(LoginViewModel::class.java)
@@ -103,20 +97,30 @@ class LoginActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                         )
                         var addresses = geocoder.getFromLocation(location?.latitude ?:-23.533773, location?.longitude ?:-46.625290, 1)
                         var city = addresses.get(0).adminArea
-                        val home = Intent(this, HomeActivity::class.java).apply {
-                            putExtra(
-                                "login",
-                                loginResult.success
-                            ).putExtra("city", city)
+                        if (BuildConfig.DEBUG) {
+                            val home = Intent(this, HomeActivity::class.java).apply {
+                                putExtra(
+                                    "login",
+                                    loginResult.success
+                                ).putExtra("city", city)
+                            }
+                            startActivity(home)
+                        } else {
+                            val home = Intent(this, HomeV1Activity::class.java).apply {
+                                putExtra(
+                                    "login",
+                                    loginResult.success
+                                ).putExtra("city", city)
+                            }
+                            startActivity(home)
                         }
-                        startActivity(home)
                     }
 
             }
             //setResult(Activity.RESULT_OK)
 
             //Complete and destroy login activity once successful
-            finish()
+//            finish()
         })
 
         username.afterTextChanged {
@@ -204,82 +208,7 @@ class LoginActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         }
     }
 
-    @SuppressLint("ResourceAsColor")
-    private fun loadBanner(adView: AdView) {
-        /*var adView = MaxAdView("d4e19143602867b0", this)
-        adView!!.setListener(this)
 
-        // Stretch to the width of the screen for banners to be fully functional
-        val width = resources.getDimensionPixelSize(R.dimen.banner_width)
-
-        // Banner height on phones and tablets is 50 and 90, respectively
-        val heightPx = resources.getDimensionPixelSize(R.dimen.banner_height)
-
-        adView!!.layoutParams = FrameLayout.LayoutParams(width, heightPx)
-
-        // Set background or background color for banners to be fully functional
-        adView!!.setBackgroundColor(R.color.material_on_background_emphasis_high_type)
-
-        val rootView = findViewById<ViewGroup>(android.R.id.content)
-        rootView.addView(adView)
-
-        // Load the ad
-        adView!!.loadAd()*/
-
-        val adSize = AdSize(adView.width, adView.height)
-
-        adView.adSize = AdSize.BANNER
-        adView.adUnitId = "ca-app-pub-9333521400694042/6831621481"
-        /*MobileAds.setRequestConfiguration(
-            RequestConfiguration.Builder()
-                .setTestDeviceIds(listOf("47A8C4EFF0CD078CECA5EB60B4E963AB"))
-                .build()
-        )*/
-
-        val adRequest: AdRequest = AdRequest.Builder().build()
-        adView.loadAd(adRequest)
-        adView.adListener = (object : AdListener() {
-            override fun onAdLoaded() {
-                // Code to be executed when an ad finishes loading.
-            }
-
-            override fun onAdFailedToLoad(error: LoadAdError) {
-                // Gets the domain from which the error came.
-                val errorDomain = error.domain
-                // Gets the error code. See
-                // https://developers.google.com/android/reference/com/google/android/gms/ads/AdRequest#constant-summary
-                // for a list of possible codes.
-                val errorCode = error.code
-                // Gets an error message.
-                // For example "Account not approved yet". See
-                // https://support.google.com/admob/answer/9905175 for explanations of
-                // common errors.
-                val errorMessage = error.message
-                // Gets additional response information about the request. See
-                // https://developers.google.com/admob/android/response-info for more
-                // information.
-                val responseInfo = error.responseInfo
-                // Gets the cause of the error, if available.
-                val cause = error.cause
-                // All of this information is available via the error's toString() method.
-                Log.d("Ads", error.toString())
-            }
-
-            override fun onAdOpened() {
-                // Code to be executed when an ad opens an overlay that
-                // covers the screen.
-            }
-
-            override fun onAdClicked() {
-                // Code to be executed when the user clicks on an ad.
-            }
-
-            override fun onAdClosed() {
-                // Code to be executed when the user is about to return
-                // to the app after tapping on an ad.
-            }
-        })
-    }
 
     private fun updateUiWithUser(context: Context, model: LoggedInUserView) {
         val welcome = R.string.welcome

@@ -30,7 +30,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig = signingConfigs.getByName("release")
-            //debuggable = true
+            debuggable = true
         }
     }
     compileOptions {
@@ -80,8 +80,9 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0"
 
     //iot
-    implementation ('com.amazonaws:aws-android-sdk-iot:2.16.+') { transitive = true }
-    implementation ('com.amazonaws:aws-android-sdk-mobile-client:2.16.+') { transitive = true }
+    compile (group: 'org.eclipse.paho', name: 'org.eclipse.paho.client.mqttv3', version: '1.2.4'){force = true}
+    implementation ('com.amazonaws:aws-android-sdk-iot:2.16.13') { transitive = true }
+    implementation ('com.amazonaws:aws-android-sdk-mobile-client:2.16.13') { transitive = true }
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.12.+"
 
     //ads

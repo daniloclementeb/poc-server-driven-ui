@@ -1,8 +1,12 @@
 package com.danilo.poc.data.ui.home
 
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.Menu
-import android.view.MenuItem
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Observer
@@ -15,144 +19,158 @@ import com.danilo.poc.data.ui.home.ui.home.HomeViewModel
 import com.danilo.poc.data.ui.home.ui.home.HomeViewModelFactory
 import com.danilo.poc.ui.login.LoggedInUserView
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.squareup.picasso.Picasso
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
-
 class HomeActivity : AppCompatActivity(), CoroutineScope by MainScope() {
-
     private lateinit var homeActivityViewModel: HomeActivityViewModel
-    private lateinit var homeViewModel: HomeViewModel
     private lateinit var username: Map<String, String>
-    private lateinit var map: Map<String, Object>
+    private lateinit var dados: Map<String, Object>
     private lateinit var homeFragment: HomeFragment
     private lateinit var dashboardFragment: DashboardFragment
-    var menuId: MenuItem? = null
-    var menu: Menu? = null
     val fm: FragmentManager = supportFragmentManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
-        homeViewModel =
-            ViewModelProvider(this).get(HomeViewModel::class.java)
+        homeActivityViewModel = ViewModelProvider(this, HomeViewModelFactory())
+            .get(HomeActivityViewModel::class.java)
 
+        //pega dados que vieram de parametro do cliente
         var login = /*"123"*/intent.getSerializableExtra("login") as LoggedInUserView
         var city = /*"123"*/intent.getSerializableExtra("city") as String
         var customer = HashMap<String, String>()
         customer.put("token", login.token)
         customer.put("city", city)
         username = customer as Map<String, String>
-        homeActivityViewModel = ViewModelProvider(this, HomeViewModelFactory())
-            .get(HomeActivityViewModel::class.java)
 
+        //inicializa observer
         launch(Dispatchers.Unconfined) {
-            homeActivityViewModel.subscribeHomeTopic(customer, applicationContext)
+            homeActivityViewModel.subscribeTopic(customer, applicationContext)
         }
-        homeActivityViewModel.navResult.observe(this@HomeActivity, Observer {
+        homeActivityViewModel.topic.observeForever({
+            System.out.println("ObserverForever tabbar")
             if (it.isSuccess) {
-                var mapa = it.getOrNull()
-                if (mapa != null) {
-                    map = mapa
-                }
-                if (!mapa.isNullOrEmpty()) {
-                    System.out.println(mapa.get("message"))
+                dados = it.getOrNull()!!
+                if (dados.get("bar") != null) {
                     //trata tabbar
-                    if (mapa.get("bar") != null) {
-                        var tabbar = mapa.get("bar") as Map<String, Object>
-                        initTabbarUI(tabbar)
-                    }
-                    //trata cards
+                    if((dados.get("bar") as Map<String, Object>)?.get("updated") != null)
+                        when ((dados.get("bar") as Map<String, Object>)?.get("updated") as String) {
+                            "true" -> {
+                                initTabbarUI(dados.get("bar") as Map<String, Object>)
+                                loadItemMenu(menuItemId(dados.get("bar") as Map<String, Object>))
+                                (dados.get("bar") as HashMap<String, Object>).remove("updated")
+                            }
+                            else -> {
+                                //do nothing
+                            }
+                        }
                 }
             }
         })
-
     }
 
-     private fun initTabbarUI(bar: Map<String, Object>) {
-         val navView: BottomNavigationView = findViewById(R.id.nav_view)
-         if (menu == null) {
-             menu = navView.menu
-         }
-         if (bar.get("clear")?.equals("true") == true) {
-             menu?.clear()
-             menuId = null
-             (bar as HashMap<String, Object>).remove("clear")
-         }
-         val list = bar.get("list") as ArrayList<Map<String, Object>>
-         this.run {
-             if (bar.get("updated")?.equals("true") == true) {
-                 list.forEachIndexed { index, it ->
-                     System.out.println(index)
-                     if (it != null) {
-                         var map: HashMap<String, String> = it as HashMap<String, String>
-                         if (map.get("updated")?.equals("true") == true) {
-                             var menuItem = menu?.add(Menu.NONE, index, index, map.get("title").toString())
-                             if (map.get("type").toString().equals("fixed_icon")) {
-                                 if (menuItem != null)
-                                     menuItem.setIcon(this.applicationContext.resources.getIdentifier(map.get("icon").toString(), "drawable", this.applicationContext.packageName))
-                             }
-
-                             if (menuId == null && map.get("checked") != null && map.get("checked") as Boolean) {
-                                 menuId = menuItem
-                             }
-                             map.remove("updated")
-                         }
-                     }
-                 }.also {
-                     (bar as HashMap<String, Object>).put("updated", "false" as Object)
-                     if (menuId != null) {
-                         navView.selectedItemId = menuId!!.itemId as Int
-                         loadItemMenu(menuId!!)
-                     }
-                 }
-             } else {
-                 if (menuId != null) {
-                     navView.selectedItemId = menuId!!.itemId as Int
-                     loadItemMenu(menuId!!)
-                 }
-             }
-         }
-
-
-         navView.setOnNavigationItemSelectedListener{
-             loadItemMenu(it)
-             true
-         }
-         this.invalidateOptionsMenu()
+    private fun loadItemMenu(menuItemId: Int) {
+        var bar = dados.get("bar") as Map<String, Object>
+        val list = bar.get("list") as ArrayList<Map<String, Object>>
+        list.forEach {
+            (it as HashMap<String, Object>).remove("checked")
+        }
+        when (list[menuItemId].get("page-style") as String) {
+            "menu" -> {
+                val field = list[menuItemId].get("data-origin") as String?
+                (list[menuItemId] as HashMap<String, Object>).put("checked", true as Object)
+                val service = dados.get(field) as Map<String, Object>?
+                homeActivityViewModel.topic.observeForever({
+                    System.out.println("ObserverForever dashboard")
+                    if (it.isSuccess) {
+                        var dados = it.getOrNull()!!
+                        if (dados.get(field) != null && (dados.get(field) as Map<String, Object>).get("updated")?.equals("true") == true) {
+                            System.out.println("Atualizaaee")
+                            dashboardFragment = DashboardFragment(service, username.get("city") as String, username.get("token") as String, field!!)
+                            //fm.beginTransaction().apply {replace(R.id.nav_host_fragment, dashboardFragment).commit()}
+                            (dados.get(field) as HashMap<String, Object>).remove("updated")
+                        }
+                    }
+                })
+                dashboardFragment = DashboardFragment(service, username.get("city") as String, username.get("token") as String, field!!)
+                fm.beginTransaction().apply {replace(R.id.nav_host_fragment, dashboardFragment).commit()}
+            }
+            "timeline" -> {
+                val field = list[menuItemId].get("data-origin") as String?
+                (list[menuItemId] as HashMap<String, Object>).put("checked", true as Object)
+                homeFragment = HomeFragment(this, field)
+                fm.beginTransaction().apply{replace(R.id.nav_host_fragment, homeFragment).commit()}
+            }
+            else ->  System.out.println("XABUGO")
+        }
     }
 
-    private fun loadItemMenu(it: MenuItem) {
-        menuId = it
-        if (map.get("bar") != null) {
-            var tabbar = map.get("bar") as Map<String, Object>
-            val list = tabbar.get("list") as ArrayList<Map<String, Object>>
-            when (list[it.itemId].get("page-style") as String) {
-                "menu" -> {
-                    val field = list[it.itemId].get("data-origin") as String?
-                    val service = map.get(field) as Map<String, Object>?
-                    dashboardFragment = DashboardFragment(service, username.get("city") as String, username.get("token") as String)
-                    fm.beginTransaction().apply {replace(R.id.nav_host_fragment, dashboardFragment).commit()}
-                }
-                "timeline" -> {
-                    val field = list[it.itemId].get("data-origin") as String?
-                    homeFragment = HomeFragment(this, field)
-                    fm.beginTransaction().apply{replace(R.id.nav_host_fragment, homeFragment).commit()}
-                }
-                else ->  System.out.println("XABUGO")
+    private fun menuItemId(map: Map<String, Object>): Int {
+        val list = map.get("list") as ArrayList<Map<String, Object>>
+        var indice = 0
+        list.forEachIndexed { index, it ->
+            var map: HashMap<String, String> = it as HashMap<String, String>
+            when (map.get("checked") != null && map.get("checked") as Boolean) {
+                true -> indice = index
             }
         }
+        return indice
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        try {
-            homeActivityViewModel.disconnect(username, applicationContext)
-        } catch (e: Exception) {
-
+    private fun initTabbarUI(bar: Map<String, Object>) {
+        val navView: BottomNavigationView = findViewById(R.id.nav_view)
+        when (bar.get("clear")?.equals("true")) {
+            true -> {
+                navView.menu.clear()
+                (bar as HashMap<String, Object>).remove("clear")
+            }
         }
+        val list = bar.get("list") as ArrayList<Map<String, Object>>
+        this.run {
+            list.forEachIndexed { index, it ->
+                var map: HashMap<String, String> = it as HashMap<String, String>
+                if (map.get("updated") != null)
+                    when (map.get("updated") as String) {
+                        "true" -> {
+                            addMenuItem(navView.menu, map, index)
+                            map.remove("updated")
+                        }
+                    }
+            }
+        }
+        navView.setOnNavigationItemSelectedListener{
+            loadItemMenu(it.itemId)
+            true
+        }
+        this.invalidateOptionsMenu()
     }
-
+    private fun addMenuItem(menu: Menu, map: java.util.HashMap<String, String>, index: Int) {
+        var menuItem = menu.add(Menu.NONE, index, index, map.get("title").toString())
+        if (map.get("type").toString().equals("fixed_icon")) {
+            menuItem.setIcon(this.applicationContext.resources.getIdentifier(map.get("icon")
+                    .toString(), "drawable", this.applicationContext.packageName))
+        } else {
+            //tratar icone dinamico
+            Picasso.get().load(map.get("icon"))
+                .into(object: com.squareup.picasso.Target {
+                    override fun onBitmapLoaded(bitmap: Bitmap?, from: Picasso.LoadedFrom?) {
+                        println("icon loaded $bitmap")
+                        menuItem.icon = BitmapDrawable(resources, bitmap)
+                    }
+                    override fun onBitmapFailed(e: Exception?, errorDrawable: Drawable?) {
+                        println("Loading failed... ${e?.message}")
+                    }
+                    override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
+                        println("Loading your icon...")
+                     }
+                })
+        }
+        map.remove("updated")
+    }
 }
+
 

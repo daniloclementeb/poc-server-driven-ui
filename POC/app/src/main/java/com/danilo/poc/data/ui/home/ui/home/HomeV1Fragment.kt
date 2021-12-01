@@ -9,11 +9,10 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.danilo.poc.R
-import com.danilo.poc.data.ui.home.HomeActivity
 import com.danilo.poc.data.ui.home.HomeV1Activity
 
 
-class HomeFragment(private var activity: HomeActivity, private var field: String?) : Fragment() {
+class HomeV1Fragment(private var activity: HomeV1Activity, private var field: String?) : Fragment() {
 
     private lateinit var homeViewModel: HomeViewModel
     private lateinit var pubsub: HomeActivityViewModel
